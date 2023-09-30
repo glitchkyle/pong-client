@@ -14,6 +14,9 @@ class Paddle:
         self.rect = rect
         self.moving = ""
         self.speed = 5
+    
+    def update(self, rect: pygame.Rect) -> None:
+        self.rect = rect
 
 class Ball:
     def __init__(self, rect:pygame.Rect, startXvel:int, startYvel:int) -> None:
