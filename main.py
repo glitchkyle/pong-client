@@ -62,8 +62,8 @@ def playGame(client: socket, game_state: GameState) -> None:
 
     current_game_state = game_state
     while True:
-        start = current_game_state.player_two_paddle_rect is not None
-        print(start)
+        start = current_game_state.paddle_rect[int(not game_state.player_id)] is not None
+        # game_state = current_game_state
 
         # Wiping the screen
         screen.fill((0,0,0))
@@ -175,27 +175,32 @@ def playGame(client: socket, game_state: GameState) -> None:
 
         if game_state.player_id == 0:
             # I am the player who initiated the game
-            game_state.player_one_paddle_rect = leftPaddle.rect
+            game_state.paddle_rect[0] = leftPaddle.rect
         else:
             # I am the player who joined the game
-            game_state.player_two_paddle_rect = rightPaddle.rect
+            game_state.paddle_rect[1] = rightPaddle.rect
 
         game_state.scores = (lScore, rScore)
 
         client.sendall(pickle.dumps(game_state))
         received_data = client.recv(BUFFER_SIZE)
         current_game_state:GameState = pickle.loads(received_data)
+        game_state = current_game_state
         if current_game_state.player_id == 0:
-            if current_game_state.player_two_paddle_rect and current_game_state.player_two_paddle_rect.y:
-                opponentPaddleObj.rect.y = current_game_state.player_two_paddle_rect.y
-            if current_game_state.player_one_paddle_rect and current_game_state.player_one_paddle_rect.y:
-                playerPaddleObj.rect.y = current_game_state.player_one_paddle_rect.y
+            print(current_game_state.paddle_rect[0])
+            print(current_game_state.paddle_rect[1])
+            if current_game_state.paddle_rect[1] and current_game_state.paddle_rect[1].y:
+                opponentPaddleObj.rect.y = current_game_state.paddle_rect[1].y
+            if current_game_state.paddle_rect[0] and current_game_state.paddle_rect[0].y:
+                playerPaddleObj.rect.y = current_game_state.paddle_rect[0].y
 
         else:
-            if current_game_state.player_one_paddle_rect and current_game_state.player_one_paddle_rect.y:
-                opponentPaddleObj.rect.y = current_game_state.player_one_paddle_rect.y
-            if current_game_state.player_two_paddle_rect and current_game_state.player_two_paddle_rect.y:
-                playerPaddleObj.rect.y = current_game_state.player_two_paddle_rect.y
+            print(current_game_state.paddle_rect[0])
+            print(current_game_state.paddle_rect[1])
+            if current_game_state.paddle_rect[0] and current_game_state.paddle_rect[0].y:
+                opponentPaddleObj.rect.y = current_game_state.paddle_rect[0].y
+            if current_game_state.paddle_rect[1] and current_game_state.paddle_rect[1].y:
+                playerPaddleObj.rect.y = current_game_state.paddle_rect[1].y
 
 # This is where you will connect to the server to get the info required to call the game loop.  Mainly
 # the screen width, height and player paddle (either "left" or "right")

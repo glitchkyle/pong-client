@@ -11,6 +11,5 @@ class GameState(object):
     # Read and Write
     ball: Rect = None
     ball_velocity: tuple[int, int] = (0, 0)
-    player_one_paddle_rect: Rect = None
-    player_two_paddle_rect: Rect = None
+    paddle_rect: list[Rect] = [None,None]
     scores: tuple[int, int] = (0, 0)
