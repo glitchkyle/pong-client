@@ -182,9 +182,20 @@ def playGame(client: socket, game_state: GameState) -> None:
 
         game_state.scores = (lScore, rScore)
 
-        client.sendall(pickle.dumps(current_game_state))
+        client.sendall(pickle.dumps(game_state))
         received_data = client.recv(BUFFER_SIZE)
-        current_game_state = pickle.loads(received_data)
+        current_game_state:GameState = pickle.loads(received_data)
+        if current_game_state.player_id == 0:
+            if current_game_state.player_two_paddle_rect and current_game_state.player_two_paddle_rect.y:
+                opponentPaddleObj.rect.y = current_game_state.player_two_paddle_rect.y
+            if current_game_state.player_one_paddle_rect and current_game_state.player_one_paddle_rect.y:
+                playerPaddleObj.rect.y = current_game_state.player_one_paddle_rect.y
+
+        else:
+            if current_game_state.player_one_paddle_rect and current_game_state.player_one_paddle_rect.y:
+                opponentPaddleObj.rect.y = current_game_state.player_one_paddle_rect.y
+            if current_game_state.player_two_paddle_rect and current_game_state.player_two_paddle_rect.y:
+                playerPaddleObj.rect.y = current_game_state.player_two_paddle_rect.y
 
 # This is where you will connect to the server to get the info required to call the game loop.  Mainly
 # the screen width, height and player paddle (either "left" or "right")
