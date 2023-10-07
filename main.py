@@ -8,9 +8,9 @@
 
 import pygame
 import sys
-import pickle
+from pickle import loads, dumps
 from socket import socket, AF_INET, SOCK_STREAM
-from tkinter import Tk, Entry, PhotoImage, Label, Button
+from tkinter import Tk, Entry, PhotoImage, Label, Button, END
 
 from assets.code.helperCode import Paddle, Ball, updateScore
 from config.constants import *
@@ -47,7 +47,8 @@ def playGame(client: socket, game_state: GameState) -> None:
     rightPaddle = Paddle(pygame.Rect(screen_width-20, paddleStartPosY, PADDLE_WIDTH, PADDLE_HEIGHT))
 
     x_vel, y_vel = game_state.ball_velocity
-    ball = Ball(game_state.ball, x_vel, y_vel)
+    x, y, w, h = game_state.ball
+    ball = Ball(pygame.Rect(x, y, w, h), x_vel, y_vel)
 
     if game_state.player_id == 0:
         # I am the player who initiated the game
@@ -62,9 +63,6 @@ def playGame(client: socket, game_state: GameState) -> None:
 
     current_game_state = game_state
     while True:
-        start = current_game_state.paddle_rect[int(not game_state.player_id)] is not None
-        # game_state = current_game_state
-
         # Wiping the screen
         screen.fill((0,0,0))
 
@@ -110,7 +108,7 @@ def playGame(client: socket, game_state: GameState) -> None:
         else:
 
             # ==== Ball Logic =====================================================================
-            if start is True:
+            if current_game_state.start:
                 ball.updatePos()
             else:
                 winText = "Waiting for opponent"
@@ -146,7 +144,7 @@ def playGame(client: socket, game_state: GameState) -> None:
             # ==== End Ball Logic =================================================================
 
         # Drawing the dotted line in the center
-        if start is True:
+        if current_game_state.start:
             for i in centerLine:
                 pygame.draw.rect(screen, COLORS["WHITE"], i)
         
@@ -170,37 +168,51 @@ def playGame(client: socket, game_state: GameState) -> None:
 
         # =========================================================================================
 
-        game_state.ball = ball.rect
-        game_state.ball_velocity = (ball.xVel, ball.yVel)
+        # Send latest information to server
 
-        if game_state.player_id == 0:
+        current_game_state.ball = ball.to_tuple_rect()
+        current_game_state.ball_velocity = (ball.xVel, ball.yVel)
+
+        current_game_state.paddle_rect = [None, None]
+        if current_game_state.player_id == 0:
             # I am the player who initiated the game
-            game_state.paddle_rect[0] = leftPaddle.rect
+            current_game_state.paddle_rect[0] = leftPaddle.to_tuple_rect()
         else:
             # I am the player who joined the game
-            game_state.paddle_rect[1] = rightPaddle.rect
+            current_game_state.paddle_rect[1] = rightPaddle.to_tuple_rect()
 
-        game_state.scores = (lScore, rScore)
+        current_game_state.scores = (lScore, rScore)
 
-        client.sendall(pickle.dumps(game_state))
+        serialized_game_state = dumps(current_game_state)
+        client.sendall(serialized_game_state)
+
+        # Receive latest information from server
+
         received_data = client.recv(BUFFER_SIZE)
-        current_game_state:GameState = pickle.loads(received_data)
-        game_state = current_game_state
-        if current_game_state.player_id == 0:
-            print(current_game_state.paddle_rect[0])
-            print(current_game_state.paddle_rect[1])
-            if current_game_state.paddle_rect[1] and current_game_state.paddle_rect[1].y:
-                opponentPaddleObj.rect.y = current_game_state.paddle_rect[1].y
-            if current_game_state.paddle_rect[0] and current_game_state.paddle_rect[0].y:
-                playerPaddleObj.rect.y = current_game_state.paddle_rect[0].y
+        received_game_state: GameState = loads(received_data)
 
+        current_game_state = received_game_state
+
+        x_vel, y_vel = current_game_state.ball_velocity
+        x, y, w, h = current_game_state.ball
+        ball = Ball(pygame.Rect(x, y, w, h), x_vel, y_vel)
+
+        if current_game_state.player_id == 0:
+            # If I am the left player
+            if current_game_state.paddle_rect[0] is not None:
+                x, y, w, h = current_game_state.paddle_rect[0]
+                playerPaddleObj.update(pygame.Rect(x, y, w, h))
+            if current_game_state.paddle_rect[1] is not None:
+                x, y, w, h = current_game_state.paddle_rect[1]
+                opponentPaddleObj.update(pygame.Rect(x, y, w, h))
         else:
-            print(current_game_state.paddle_rect[0])
-            print(current_game_state.paddle_rect[1])
-            if current_game_state.paddle_rect[0] and current_game_state.paddle_rect[0].y:
-                opponentPaddleObj.rect.y = current_game_state.paddle_rect[0].y
-            if current_game_state.paddle_rect[1] and current_game_state.paddle_rect[1].y:
-                playerPaddleObj.rect.y = current_game_state.paddle_rect[1].y
+            # If I am the right player
+            if current_game_state.paddle_rect[0] is not None:
+                x, y, w, h = current_game_state.paddle_rect[0]
+                opponentPaddleObj.update(pygame.Rect(x, y, w, h))
+            if current_game_state.paddle_rect[1] is not None:
+                x, y, w, h = current_game_state.paddle_rect[1]
+                playerPaddleObj.update(pygame.Rect(x, y, w, h))
 
 # This is where you will connect to the server to get the info required to call the game loop.  Mainly
 # the screen width, height and player paddle (either "left" or "right")
@@ -220,7 +232,8 @@ def joinServer(ip: str, port: str, app: Tk) -> None:
     # Get the required information from your server (screen width, height & player paddle, "left or "right)
     client.connect((ip, int(port)))
 
-    initial_received_game_state: GameState = pickle.loads(client.recv(BUFFER_SIZE))
+    received_data = client.recv(BUFFER_SIZE)
+    initial_received_game_state: GameState = loads(received_data)
 
     # Close this window and start the game with the info passed to you from the server
     app.withdraw()                                      # Hides the window (we'll kill it later)
@@ -243,12 +256,14 @@ def startScreen():
 
     ipEntry = Entry(app)
     ipEntry.grid(column=1, row=1)
+    ipEntry.insert(END, "127.0.0.1")
 
     portLabel = Label(text="Server Port:")
     portLabel.grid(column=0, row=2, sticky="W", padx=8)
 
     portEntry = Entry(app)
     portEntry.grid(column=1, row=2)
+    portEntry.insert(END, "8080")
 
     joinButton = Button(text="Join", command=lambda: joinServer(ipEntry.get(), portEntry.get(), app))
     joinButton.grid(column=0, row=3, columnspan=2)
