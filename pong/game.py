@@ -1,16 +1,18 @@
-from pygame import Rect
-
 from config.constants import DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT
 
-class GameState(object):
-    # Read Only
-    game_id: str
-    player_id: str
-    screen_size: tuple[int, int] = (DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT)
+TupleRect = tuple[int, int, int ,int]
 
-    # Read and Write
-    ball: Rect = None
-    ball_velocity: tuple[int, int] = (0, 0)
-    player_one_paddle_rect: Rect = None
-    player_two_paddle_rect: Rect = None
-    scores: tuple[int, int] = (0, 0)
+class GameState(object):
+    def __init__(self):
+        # Read Only
+        self.game_id: str
+        self.player_id: int
+        self.screen_size: tuple[int, int] = (DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT)
+
+        # Read and Write
+        self.message: str
+        self.start: bool = False
+        self.scores: tuple[int, int] = (0, 0)
+        self.paddle_rect: list[TupleRect | None] = [None, None]
+        self.ball: TupleRect = None
+        self.ball_velocity: tuple[int, int] = (0, 0)

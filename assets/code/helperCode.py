@@ -1,6 +1,8 @@
 # You don't need to edit this file at all unless you really want to
 import pygame
 
+TupleRect = tuple[int, int, int ,int]
+
 # This draws the score to the screen
 def updateScore(lScore:int, rScore:int, screen:pygame.surface.Surface, color, scoreFont:pygame.font.Font) -> pygame.Rect:
     textSurface = scoreFont.render(f"{lScore}   {rScore}", False, color)
@@ -15,6 +17,12 @@ class Paddle:
         self.moving = ""
         self.speed = 5
     
+    def __str__(self) -> None:
+        return f"({self.rect[0]}, {self.rect[1]})"
+    
+    def to_tuple_rect(self) -> TupleRect:
+        return (self.rect.x, self.rect.y, self.rect.width, self.rect.height)
+    
     def update(self, rect: pygame.Rect) -> None:
         self.rect = rect
 
@@ -25,6 +33,9 @@ class Ball:
         self.yVel = startYvel
         self.startXpos = rect.x
         self.startYpos = rect.y
+
+    def to_tuple_rect(self) -> TupleRect:
+        return (self.rect.x, self.rect.y, self.rect.width, self.rect.height)
     
     def updatePos(self) -> None:
         self.rect.x += self.xVel
