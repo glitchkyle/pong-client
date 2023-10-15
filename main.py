@@ -40,6 +40,7 @@ def playGame(client: socket, game_state: GameState) -> None:
     topWall = pygame.Rect(-10,0,screen_width+20, 10)
     bottomWall = pygame.Rect(-10, screen_height-10, screen_width+20, 10)
     centerLine = [pygame.Rect((screen_width/2)-5,i,5,5) for i in range(0, screen_height, 10)]
+    playAgainMessage = pygame.Rect(0,0,150,150)
 
     # Paddle properties and init
     paddleStartPosY = (screen_height/2)-(PADDLE_HEIGHT/2)
@@ -60,7 +61,7 @@ def playGame(client: socket, game_state: GameState) -> None:
         playerPaddleObj = rightPaddle
 
     lScore = rScore = sync = 0
-
+    start_state = game_state
     current_game_state = game_state
     while True:
         # Wiping the screen
@@ -81,6 +82,19 @@ def playGame(client: socket, game_state: GameState) -> None:
             elif event.type == pygame.KEYUP:
                 playerPaddleObj.moving = ""
 
+            if (lScore > 4 or rScore > 4) and event.type == pygame.MOUSEBUTTONDOWN:
+                if playAgainMessage.collidepoint(mouse[0],mouse[1]):
+                    playAgain()
+        
+        def playAgain() -> None:
+            current_game_state.again[current_game_state.player_id] = True
+
+        def drawCenteredMessage(rect:pygame.Rect,font:pygame.font.Font,message:str,antialias:bool,center:tuple[float, float]) -> pygame.Rect:
+            textSurface = font.render(message,antialias,COLORS["WHITE"], (0,0,0))
+            textRect = textSurface.get_rect()
+            textRect.center = center
+            rect = screen.blit(textSurface,textRect)
+            return rect
         # =========================================================================================
         # Your code here to send an update to the server on your paddle's information,
         # where the ball is and the current score.
@@ -98,13 +112,13 @@ def playGame(client: socket, game_state: GameState) -> None:
                 if paddle.rect.topleft[1] > 10:
                     paddle.rect.y -= paddle.speed
 
+        mouse:tuple[int, int] = pygame.mouse.get_pos()
+
         # If the game is over, display the win message
         if lScore > 4 or rScore > 4:
             winText = "Player 1 Wins! " if lScore > 4 else "Player 2 Wins! "
-            textSurface = winFont.render(winText, False, COLORS["WHITE"], (0,0,0))
-            textRect = textSurface.get_rect()
-            textRect.center = ((screen_width/2), screen_height/2)
-            winMessage = screen.blit(textSurface, textRect)
+            drawCenteredMessage(winMessage,winFont,winText,False,((screen_width/2), screen_height/2))
+            playAgainMessage = drawCenteredMessage(playAgainMessage,winFont,"Play Again",True,((screen_width/2), screen_height/2+90))
         else:
 
             # ==== Ball Logic =====================================================================
@@ -112,10 +126,7 @@ def playGame(client: socket, game_state: GameState) -> None:
                 ball.updatePos()
             else:
                 winText = "Waiting for opponent"
-                textSurface = winFont.render(winText, False, COLORS["WHITE"], (0,0,0))
-                textRect = textSurface.get_rect()
-                textRect.center = ((screen_width/2), screen_height/2)
-                winMessage = screen.blit(textSurface, textRect)
+                drawCenteredMessage(winMessage,winFont,winText,False,((screen_width/2), screen_height/2))
 
             # If the ball makes it past the edge of the screen, update score, etc.
             if ball.rect.x > screen_width:
@@ -196,6 +207,11 @@ def playGame(client: socket, game_state: GameState) -> None:
         x_vel, y_vel = current_game_state.ball_velocity
         x, y, w, h = current_game_state.ball
         ball = Ball(pygame.Rect(x, y, w, h), x_vel, y_vel)
+
+        if current_game_state.again == [True,True]:
+            lScore = 0
+            rScore = 0
+            current_game_state = start_state
 
         if current_game_state.player_id == 0:
             # If I am the left player
