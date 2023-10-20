@@ -61,6 +61,7 @@ def playGame(client: socket, game_state: GameState) -> None:
         playerPaddleObj = rightPaddle
 
     lScore = rScore = sync = 0
+    # Enable us to return to the initial state
     start_state = game_state
     current_game_state = game_state
     while True:
@@ -118,7 +119,8 @@ def playGame(client: socket, game_state: GameState) -> None:
         if lScore > 4 or rScore > 4:
             winText = "Player 1 Wins! " if lScore > 4 else "Player 2 Wins! "
             drawCenteredMessage(winMessage,winFont,winText,False,((screen_width/2), screen_height/2))
-            playAgainMessage = drawCenteredMessage(playAgainMessage,winFont,"Play Again",True,((screen_width/2), screen_height/2+90))
+            if current_game_state.again[current_game_state.player_id] == 0:
+                playAgainMessage = drawCenteredMessage(playAgainMessage,winFont,"Play Again",True,((screen_width/2), screen_height/2+90))
         else:
 
             # ==== Ball Logic =====================================================================
