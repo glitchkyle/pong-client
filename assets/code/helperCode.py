@@ -1,4 +1,5 @@
 # You don't need to edit this file at all unless you really want to
+from random import randint
 import pygame
 
 TupleRect = tuple[int, int, int ,int]
@@ -40,6 +41,11 @@ class Ball:
     def updatePos(self) -> None:
         self.rect.x += self.xVel
         self.rect.y += self.yVel
+
+    def overridePos(self, rect:pygame.Rect, x_vel:int, y_vel:int) -> None:
+        self.rect = rect
+        self.xVel = x_vel
+        self.yVel = y_vel
     
     def hitPaddle(self, paddleCenter:int) -> None:
         self.xVel *= -1
@@ -54,3 +60,7 @@ class Ball:
         self.rect.y = self.startYpos
         self.xVel = -5 if nowGoing == "left" else 5
         self.yVel = 0
+
+    def randomize(self) -> None:
+        self.xVel = randint(-5, 5)
+        self.yVel = randint(-5, 5)

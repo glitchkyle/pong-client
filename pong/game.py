@@ -10,6 +10,7 @@ class GameState(object):
         self.screen_size: tuple[int, int] = (DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT)
 
         # Read and Write
+        self.sync = 0
         self.message: str
         self.start: bool = False
         self.scores: tuple[int, int] = (0, 0)
