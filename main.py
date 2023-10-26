@@ -30,7 +30,7 @@ def playGame(client: socket, game_state: GameState) -> None:
     # Constants
     clock = pygame.time.Clock()
     scoreFont = pygame.font.Font("./assets/fonts/pong-score.ttf", 32)
-    winFont = pygame.font.Font("./assets/fonts/visitor.ttf", 48)
+    winFont = pygame.font.Font("./assets/fonts/visitor.ttf", 32)
     pointSound = pygame.mixer.Sound("./assets/sounds/point.wav")
     bounceSound = pygame.mixer.Sound("./assets/sounds/bounce.wav")
 
@@ -40,7 +40,7 @@ def playGame(client: socket, game_state: GameState) -> None:
     topWall = pygame.Rect(-10,0,screen_width+20, 10)
     bottomWall = pygame.Rect(-10, screen_height-10, screen_width+20, 10)
     centerLine = [pygame.Rect((screen_width/2)-5,i,5,5) for i in range(0, screen_height, 10)]
-    playAgainMessage = pygame.Rect(0,0,150,150)
+    playAgainMessage = pygame.Rect(0,0,50,50)
 
     # Paddle properties and init
     paddleStartPosY = (screen_height/2)-(PADDLE_HEIGHT/2)
@@ -121,6 +121,9 @@ def playGame(client: socket, game_state: GameState) -> None:
             drawCenteredMessage(winMessage,winFont,winText,False,((screen_width/2), screen_height/2))
             if current_game_state.again[current_game_state.player_id] == 0:
                 playAgainMessage = drawCenteredMessage(playAgainMessage,winFont,"Play Again",True,((screen_width/2), screen_height/2+90))
+            
+            if current_game_state.again[int(not current_game_state.player_id)] == 1:
+                playAgainMessage = drawCenteredMessage(playAgainMessage, winFont,f"Your opponent wants a rematch",True,((screen_width/2), screen_height/2+90))
         else:
 
             # ==== Ball Logic =====================================================================
