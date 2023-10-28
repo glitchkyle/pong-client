@@ -84,7 +84,7 @@ def play_game(client: socket, game_state: GameState) -> None:
                     sync -= randint(1, 3)
                     ball.randomize()
             elif event.type == pygame.KEYUP:
-                player_paddle.moving.moving = ""
+                player_paddle.moving = ""
 
             if (left_score > MAX_SCORE - 1 or right_score > MAX_SCORE - 1) and event.type == pygame.MOUSEBUTTONDOWN:
                 if play_again_message.collidepoint(mouse[0],mouse[1]):
