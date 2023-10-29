@@ -267,14 +267,14 @@ def startScreen():
 
     ipEntry = Entry(app)
     ipEntry.grid(column=1, row=1)
-    ipEntry.insert(END, "127.0.0.1")
+    ipEntry.insert(END, DEFAULT_SOCKET_IP)
 
     portLabel = Label(text="Server Port:")
     portLabel.grid(column=0, row=2, sticky="W", padx=8)
 
     portEntry = Entry(app)
     portEntry.grid(column=1, row=2)
-    portEntry.insert(END, "8080")
+    portEntry.insert(END, DEFAULT_SOCKET_PORT)
 
     joinButton = Button(text="Join", command=lambda: joinServer(ipEntry.get(), portEntry.get(), app))
     joinButton.grid(column=0, row=3, columnspan=2)
