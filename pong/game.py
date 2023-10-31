@@ -7,6 +7,7 @@ class GameState(object):
         # Read Only
         self.game_id: str
         self.player_id: int
+        self.player_name: str
         self.screen_size: tuple[int, int] = (DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT)
 
         # Read and Write

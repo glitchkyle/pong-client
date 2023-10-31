@@ -17,6 +17,8 @@ from assets.code.helperCode import Paddle, Ball, updateScore
 from config.constants import *
 from config.colors import Color
 from pong.game import GameState
+import requests
+from tkinter import messagebox
 
 # This is the main game loop.  For the most part, you will not need to modify this.  The sections
 # where you should add to the code are marked.  Feel free to change any part of this project
@@ -223,13 +225,12 @@ def playGame(client: socket, game_state: GameState) -> None:
                 # Update my paddle
                 x, y, w, h = current_game_state.paddle_rect[1]
                 player_paddle.update(pygame.Rect(x, y, w, h))
-        
 
 # This is where you will connect to the server to get the info required to call the game loop.  Mainly
 # the screen width, height and player paddle (either "left" or "right")
 # If you want to hard code the screen's dimensions into the code, that's fine, but you will need to know
 # which client is which
-def joinServer(ip: str, port: str, app: Tk) -> None:
+def joinServer(ip: str, port: str, app: Tk,username:str,password:str) -> None:
     # Purpose:      This method is fired when the join button is clicked
     # Arguments:
     # ip            A string holding the IP address of the server
@@ -238,19 +239,37 @@ def joinServer(ip: str, port: str, app: Tk) -> None:
     
     # Create a socket and connect to the server
     # You don't have to use SOCK_STREAM, use what you think is best
-    client = socket(AF_INET, SOCK_STREAM)
 
-    # Get the required information from your server (screen width, height & player paddle, "left or "right)
-    client.connect((ip, int(port)))
+    api_url = f"http://{ip}:8000/app/api/authenticate/"
 
-    received_data = client.recv(BUFFER_SIZE)
-    initial_received_game_state: GameState = loads(received_data)
+    data_to_send = {
+        "username": username,
+        "password": password
+    }
 
-    # Close this window and start the game with the info passed to you from the server
-    app.withdraw()                                      # Hides the window (we'll kill it later)
-    playGame(client, initial_received_game_state)       # User will be either left or right paddle
-    app.quit()                                          # Kills the window
+    response = requests.post(api_url, json=data_to_send)
 
+    if response.status_code == 200:
+        response_data = response.json()
+        if response_data == {'message': 'Authentication successful'}:
+            print("Authentication successful")
+        else:
+            messagebox.showerror("Authentication Failed", "Incorrect username or password. Please try again.")
+   
+        client = socket(AF_INET, SOCK_STREAM)
+
+        # Get the required information from your server (screen width, height & player paddle, "left or "right)
+        client.connect((ip, int(port)))
+        client.send(username.encode())
+        received_data = client.recv(BUFFER_SIZE)
+        initial_received_game_state: GameState = loads(received_data)
+        initial_received_game_state.player_name = username
+        # Close this window and start the game with the info passed to you from the server
+        app.withdraw()                                      # Hides the window (we'll kill it later)
+        playGame(client, initial_received_game_state)       # User will be either left or right paddle
+        app.quit()                                          # Kills the window
+    else:
+        messagebox.showerror("Authentication Error", "Incorrect username or password. Type the correct username and password, and try again")
 
 # This displays the opening screen, you don't need to edit this (but may if you like)
 def startScreen():
@@ -261,23 +280,37 @@ def startScreen():
 
     titleLabel = Label(image=image)
     titleLabel.grid(column=0, row=0, columnspan=2)
-
+    # IP
     ipLabel = Label(text="Server IP:")
     ipLabel.grid(column=0, row=1, sticky="W", padx=8)
 
     ipEntry = Entry(app)
     ipEntry.grid(column=1, row=1)
     ipEntry.insert(END, DEFAULT_SOCKET_IP)
-
+    # PORT
     portLabel = Label(text="Server Port:")
     portLabel.grid(column=0, row=2, sticky="W", padx=8)
 
     portEntry = Entry(app)
     portEntry.grid(column=1, row=2)
     portEntry.insert(END, DEFAULT_SOCKET_PORT)
+    # Username
+    username_label = Label(text="Username:")
+    username_label.grid(column=0, row=3, sticky="W", padx=8)
 
-    joinButton = Button(text="Join", command=lambda: joinServer(ipEntry.get(), portEntry.get(), app))
-    joinButton.grid(column=0, row=3, columnspan=2)
+    username_entry = Entry(app)
+    username_entry.grid(column=1, row=3)
+    username_entry.insert(END, "")
+    # Password
+    password_label = Label(text="Password:")
+    password_label.grid(column=0, row=4, sticky="W", padx=8)
+
+    password_entry = Entry(app)
+    password_entry.grid(column=1, row=4)
+    password_entry.insert(END, "")
+
+    joinButton = Button(text="Join", command=lambda: joinServer(ipEntry.get(), portEntry.get(), app,username_entry.get(),password_entry.get()))
+    joinButton.grid(column=0, row=5, columnspan=2)
 
     app.mainloop()
 
