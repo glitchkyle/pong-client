@@ -13,7 +13,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from tkinter import Tk, Entry, PhotoImage, Label, Button, END
 from random import randint
 
-from assets.code.helperCode import Paddle, Ball, updateScore
+from assets.code.helperCode import Paddle, Ball, update_score
 from config.constants import *
 from config.colors import Color
 from pong.game import GameState
@@ -21,7 +21,7 @@ from pong.game import GameState
 # This is the main game loop.  For the most part, you will not need to modify this.  The sections
 # where you should add to the code are marked.  Feel free to change any part of this project
 # to suit your needs.
-def playGame(client: socket, game_state: GameState) -> None:
+def play_game(client: socket, game_state: GameState) -> None:
     screen_width, screen_height = game_state.screen_size
 
     # Pygame inits
@@ -31,7 +31,7 @@ def playGame(client: socket, game_state: GameState) -> None:
     # Constants
     clock = pygame.time.Clock()
     score_font = pygame.font.Font("./assets/fonts/pong-score.ttf", 32)
-    win_font = pygame.font.Font("./assets/fonts/visitor.ttf", 48)
+    win_font = pygame.font.Font("./assets/fonts/visitor.ttf", 32)
     point_sound = pygame.mixer.Sound("./assets/sounds/point.wav")
     bounce_sound = pygame.mixer.Sound("./assets/sounds/bounce.wav")
 
@@ -41,6 +41,7 @@ def playGame(client: socket, game_state: GameState) -> None:
     top_wall = pygame.Rect(-10,0,screen_width+20, 10)
     bottom_wall = pygame.Rect(-10, screen_height-10, screen_width+20, 10)
     center_line = [pygame.Rect((screen_width/2)-5,i,5,5) for i in range(0, screen_height, 10)]
+    play_again_message = pygame.Rect(0,0,50,50)
 
     # Paddle properties and init
     paddle_start_pos_y = (screen_height/2)-(PADDLE_HEIGHT/2)
@@ -61,7 +62,8 @@ def playGame(client: socket, game_state: GameState) -> None:
         player_paddle = right_paddle
 
     left_score = right_score = sync = 0
-
+    # Enable us to return to the initial state
+    start_state = game_state
     current_game_state = game_state
     while True:
         # Wiping the screen
@@ -84,6 +86,27 @@ def playGame(client: socket, game_state: GameState) -> None:
             elif event.type == pygame.KEYUP:
                 player_paddle.moving = ""
 
+            if (left_score > MAX_SCORE - 1 or right_score > MAX_SCORE - 1) and event.type == pygame.MOUSEBUTTONDOWN:
+                if play_again_message.collidepoint(mouse[0],mouse[1]):
+                    playAgain()
+        
+        def playAgain() -> None:
+            current_game_state.again[current_game_state.player_id] = True
+
+        def draw_centered_message(rect:pygame.Rect,font:pygame.font.Font,message:str,antialias:bool,center:tuple[float, float]) -> pygame.Rect:
+            text_surface = font.render(message,antialias,Color.WHITE.value, (0,0,0))
+            text_rect = text_surface.get_rect()
+            text_rect.center = center
+            rect = screen.blit(text_surface,text_rect)
+            return rect
+        # =========================================================================================
+        # Your code here to send an update to the server on your paddle's information,
+        # where the ball is and the current score.
+        # Feel free to change when the score is updated to suit your needs/requirements
+        
+        
+        # =========================================================================================
+
         # Update the player paddle and opponent paddle's location on the screen
         for paddle in [player_paddle, opponent_paddle]:
             if paddle.moving == "down":
@@ -93,47 +116,48 @@ def playGame(client: socket, game_state: GameState) -> None:
                 if paddle.rect.topleft[1] > 10:
                     paddle.rect.y -= paddle.speed
 
+        mouse:tuple[int, int] = pygame.mouse.get_pos()
+
         # If the game is over, display the win message
         if left_score > MAX_SCORE - 1 or right_score > MAX_SCORE - 1:
-            winText = "Player 1 Wins! " if left_score > 4 else "Player 2 Wins! "
-            text_surface = win_font.render(winText, False, Color.WHITE.value, Color.BLACK.value)
-            textRect = text_surface.get_rect()
-            textRect.center = ((screen_width/2), screen_height/2)
-            win_message = screen.blit(text_surface, textRect)
+            win_text = "Player 1 Wins! " if left_score > MAX_SCORE - 1 else "Player 2 Wins! "
+            draw_centered_message(win_message,win_font,win_text,False,((screen_width/2), screen_height/2))
+            if current_game_state.again[current_game_state.player_id] == 0:
+                play_again_message = draw_centered_message(play_again_message,win_font,"Play Again",True,((screen_width/2), screen_height/2+90))
+            
+            if current_game_state.again[int(not current_game_state.player_id)] == 1:
+                play_again_message = draw_centered_message(play_again_message, win_font,f"Your opponent wants a rematch",True,((screen_width/2), screen_height/2+90))
         else:
 
             # ==== Ball Logic =====================================================================
             if current_game_state.start:
-                ball.updatePos()
+                ball.update_pos()
             else:
-                winText = "Waiting for opponent"
-                text_surface = win_font.render(winText, False, Color.WHITE.value, Color.BLACK.value)
-                textRect = text_surface.get_rect()
-                textRect.center = ((screen_width/2), screen_height/2)
-                win_message = screen.blit(text_surface, textRect)
+                win_text = "Waiting for opponent"
+                draw_centered_message(win_message,win_font,win_text,False,((screen_width/2), screen_height/2))
 
             # If the ball makes it past the edge of the screen, update score, etc.
             if ball.rect.x > screen_width:
                 left_score += 1
                 point_sound.play()
-                ball.reset(nowGoing="left")
+                ball.reset(now_going="left")
             elif ball.rect.x < 0:
                 right_score += 1
                 point_sound.play()
-                ball.reset(nowGoing="right")
+                ball.reset(now_going="right")
             
             # If the ball hits a paddle
             if ball.rect.colliderect(player_paddle.rect):
                 bounce_sound.play()
-                ball.hitPaddle(player_paddle.rect.center[1])
+                ball.hit_paddle(player_paddle.rect.center[1])
             elif ball.rect.colliderect(opponent_paddle.rect):
                 bounce_sound.play()
-                ball.hitPaddle(opponent_paddle.rect.center[1])
+                ball.hit_paddle(opponent_paddle.rect.center[1])
                 
             # If the ball hits a wall
             if ball.rect.colliderect(top_wall) or ball.rect.colliderect(bottom_wall):
                 bounce_sound.play()
-                ball.hitWall()
+                ball.hit_wall()
             
             pygame.draw.rect(screen, Color.WHITE.value, ball)
             # ==== End Ball Logic =================================================================
@@ -149,7 +173,7 @@ def playGame(client: socket, game_state: GameState) -> None:
 
         pygame.draw.rect(screen, Color.WHITE.value, top_wall)
         pygame.draw.rect(screen, Color.WHITE.value, bottom_wall)
-        scoreRect = updateScore(left_score, right_score, screen, Color.WHITE.value, score_font)
+        scoreRect = update_score(left_score, right_score, screen, Color.WHITE.value, score_font)
         pygame.display.update([top_wall, bottom_wall, ball, left_paddle, right_paddle, scoreRect, win_message])
         clock.tick(GAME_CLOCK_SPEED)
         
@@ -171,7 +195,7 @@ def playGame(client: socket, game_state: GameState) -> None:
 
         # Send Ball
         current_game_state.ball = ball.to_tuple_rect()
-        current_game_state.ball_velocity = (ball.xVel, ball.yVel)
+        current_game_state.ball_velocity = (ball.x_vel, ball.y_vel)
 
         # Send Score
         current_game_state.scores = (left_score, right_score)
@@ -200,7 +224,12 @@ def playGame(client: socket, game_state: GameState) -> None:
             # Update Ball
             x_vel, y_vel = current_game_state.ball_velocity
             x, y, w, h = current_game_state.ball
-            ball.overridePos(pygame.Rect(x, y, w, h), x_vel, y_vel)
+            ball.override_pos(pygame.Rect(x, y, w, h), x_vel, y_vel)
+
+        if current_game_state.again == [True,True]:
+            left_score = 0
+            right_score = 0
+            current_game_state = start_state
 
         # Update Paddles
         if current_game_state.player_id == 0:
@@ -229,7 +258,7 @@ def playGame(client: socket, game_state: GameState) -> None:
 # the screen width, height and player paddle (either "left" or "right")
 # If you want to hard code the screen's dimensions into the code, that's fine, but you will need to know
 # which client is which
-def joinServer(ip: str, port: str, app: Tk) -> None:
+def join_server(ip: str, port: str, app: Tk) -> None:
     # Purpose:      This method is fired when the join button is clicked
     # Arguments:
     # ip            A string holding the IP address of the server
@@ -248,41 +277,41 @@ def joinServer(ip: str, port: str, app: Tk) -> None:
 
     # Close this window and start the game with the info passed to you from the server
     app.withdraw()                                      # Hides the window (we'll kill it later)
-    playGame(client, initial_received_game_state)       # User will be either left or right paddle
+    play_game(client, initial_received_game_state)       # User will be either left or right paddle
     app.quit()                                          # Kills the window
 
 
 # This displays the opening screen, you don't need to edit this (but may if you like)
-def startScreen():
+def start_screen():
     app = Tk()
     app.title("Server Info")
 
     image = PhotoImage(file="./assets/images/logo.png")
 
-    titleLabel = Label(image=image)
-    titleLabel.grid(column=0, row=0, columnspan=2)
+    title_label = Label(image=image)
+    title_label.grid(column=0, row=0, columnspan=2)
 
-    ipLabel = Label(text="Server IP:")
-    ipLabel.grid(column=0, row=1, sticky="W", padx=8)
+    ip_label = Label(text="Server IP:")
+    ip_label.grid(column=0, row=1, sticky="W", padx=8)
 
-    ipEntry = Entry(app)
-    ipEntry.grid(column=1, row=1)
-    ipEntry.insert(END, DEFAULT_SOCKET_IP)
+    ip_entry = Entry(app)
+    ip_entry.grid(column=1, row=1)
+    ip_entry.insert(END, DEFAULT_SOCKET_IP)
 
-    portLabel = Label(text="Server Port:")
-    portLabel.grid(column=0, row=2, sticky="W", padx=8)
+    port_label = Label(text="Server Port:")
+    port_label.grid(column=0, row=2, sticky="W", padx=8)
 
-    portEntry = Entry(app)
-    portEntry.grid(column=1, row=2)
-    portEntry.insert(END, DEFAULT_SOCKET_PORT)
+    port_entry = Entry(app)
+    port_entry.grid(column=1, row=2)
+    port_entry.insert(END, DEFAULT_SOCKET_PORT)
 
-    joinButton = Button(text="Join", command=lambda: joinServer(ipEntry.get(), portEntry.get(), app))
-    joinButton.grid(column=0, row=3, columnspan=2)
+    join_button = Button(text="Join", command=lambda: join_server(ip_entry.get(), port_entry.get(), app))
+    join_button.grid(column=0, row=3, columnspan=2)
 
     app.mainloop()
 
 def main():
-    startScreen()
+    start_screen()
 
 if __name__ == "__main__":
     main()

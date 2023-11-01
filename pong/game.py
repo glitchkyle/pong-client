@@ -17,3 +17,4 @@ class GameState(object):
         self.paddle_rect: list[TupleRect | None] = [None, None]
         self.ball: TupleRect = None
         self.ball_velocity: tuple[int, int] = (0, 0)
+        self.again: list[bool] = [False,False]
