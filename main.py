@@ -10,7 +10,7 @@ import pygame
 import sys
 from pickle import loads, dumps
 from socket import socket, AF_INET, SOCK_STREAM
-from tkinter import Tk, Entry, PhotoImage, Label, Button, END
+from tkinter import Tk, Entry, PhotoImage, Label, Button, END,messagebox
 from random import randint
 
 from assets.code.helperCode import Paddle, Ball, update_score
@@ -18,7 +18,6 @@ from config.constants import *
 from config.colors import Color
 from pong.game import GameState
 import requests
-from tkinter import messagebox
 
 # This is the main game loop.  For the most part, you will not need to modify this.  The sections
 # where you should add to the code are marked.  Feel free to change any part of this project
@@ -269,7 +268,7 @@ def join_server(ip: str, port: str, app: Tk,username:str,password:str) -> None:
     # Create a socket and connect to the server
     # You don't have to use SOCK_STREAM, use what you think is best
 
-    api_url = f"http://{ip}:8000/app/api/authenticate/"
+    api_url = f"http://{ip}:{DEFAULT_SERVER_PORT}/app/api/authenticate/"
 
     data_to_send = {
         "username": username,
@@ -334,7 +333,7 @@ def start_screen():
     password_label = Label(text="Password:")
     password_label.grid(column=0, row=4, sticky="W", padx=8)
 
-    password_entry = Entry(app)
+    password_entry = Entry(app,show="*")
     password_entry.grid(column=1, row=4)
     password_entry.insert(END, "")
 
