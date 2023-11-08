@@ -215,16 +215,15 @@ def play_game(client: socket, game_state: GameState) -> None:
         # Update from information from server
         current_game_state = received_game_state
 
-        if current_game_state.sync > sync:
-            sync = current_game_state.sync
+        sync = current_game_state.sync
 
-            # Update Score
-            left_score, right_score = current_game_state.scores
+        # Update Score
+        left_score, right_score = current_game_state.scores
 
-            # Update Ball
-            x_vel, y_vel = current_game_state.ball_velocity
-            x, y, w, h = current_game_state.ball
-            ball.override_pos(pygame.Rect(x, y, w, h), x_vel, y_vel)
+        # Update Ball
+        x_vel, y_vel = current_game_state.ball_velocity
+        x, y, w, h = current_game_state.ball
+        ball.override_pos(pygame.Rect(x, y, w, h), x_vel, y_vel)
 
         if current_game_state.again == [True,True]:
             left_score = 0
