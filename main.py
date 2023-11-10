@@ -18,6 +18,7 @@ from config.constants import *
 from config.colors import Color
 from pong.game import GameState
 import requests
+import ssl
 
 # This is the main game loop.  For the most part, you will not need to modify this.  The sections
 # where you should add to the code are marked.  Feel free to change any part of this project
@@ -258,7 +259,7 @@ def play_game(client: socket, game_state: GameState) -> None:
 # the screen width, height and player paddle (either "left" or "right")
 # If you want to hard code the screen's dimensions into the code, that's fine, but you will need to know
 # which client is which
-def join_server(ip: str, port: str, app: Tk,username:str,password:str) -> None:
+def join_server(ip: str, port: str, app: Tk,username:str,password:str, confirm_password:str = None) -> None:
     # Purpose:      This method is fired when the join button is clicked
     # Arguments:
     # ip            A string holding the IP address of the server
@@ -268,36 +269,55 @@ def join_server(ip: str, port: str, app: Tk,username:str,password:str) -> None:
     # Create a socket and connect to the server
     # You don't have to use SOCK_STREAM, use what you think is best
 
-    api_url = f"http://{ip}:{DEFAULT_SERVER_PORT}/app/api/authenticate/"
 
-    data_to_send = {
+    player_credentials = {
         "username": username,
         "password": password
     }
 
-    response = requests.post(api_url, json=data_to_send)
+    if confirm_password is not None:
+        player_credentials["confirm_password"] = confirm_password
 
-    if response.status_code == 200:
-        response_data = response.json()
-        if response_data == {'message': 'Authentication successful'}:
-            print("Authentication successful")
-        else:
-            messagebox.showerror("Authentication Failed", "Incorrect username or password. Please try again.")
-   
-        client = socket(AF_INET, SOCK_STREAM)
+    # Get the required information from your server (screen width, height & player paddle, "left or "right)
+    client = socket(AF_INET, SOCK_STREAM)
 
-        # Get the required information from your server (screen width, height & player paddle, "left or "right)
+    
+    try:
         client.connect((ip, int(port)))
-        client.send(username.encode())
-        received_data = client.recv(BUFFER_SIZE)
+        print("Connection successful")
+    except Exception as e:
+        print("Connection failed:", e)
+
+    client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    client_context.check_hostname = False
+    client_context.verify_mode = ssl.CERT_NONE  # Disable certificate verification
+    wrapped_client_socket = client_context.wrap_socket(client)
+
+    serialized_player_info = dumps(player_credentials)
+    wrapped_client_socket.sendall(serialized_player_info)
+
+    response = wrapped_client_socket.recv(BUFFER_SIZE)
+    if response == b"Authentication failed":
+        print("Authentication failed. Please check your username and password.")
+        title = "Authentication Failed"
+        message = (
+            "Incorrect username or password. Please try again.\n\n"
+            "If you are trying to sign up, make sure to have the same password and confirm password. "
+            "Also, click the register button to complete the registration."
+        )
+
+        messagebox.showerror(title, message)
+        # Add code to handle the failed authentication, maybe prompt the user to re-enter credentials
+        wrapped_client_socket.close()  # Close the socket, as the authentication failed
+    else:
+        print("Authentication successful")
+        received_data = wrapped_client_socket.recv(BUFFER_SIZE)
         initial_received_game_state: GameState = loads(received_data)
         initial_received_game_state.player_name = username
         # Close this window and start the game with the info passed to you from the server
         app.withdraw()                                      # Hides the window (we'll kill it later)
-        play_game(client, initial_received_game_state)       # User will be either left or right paddle
+        play_game(wrapped_client_socket, initial_received_game_state)       # User will be either left or right paddle
         app.quit()                                          # Kills the window
-    else:
-        messagebox.showerror("Authentication Error", "Incorrect username or password. Type the correct username and password, and try again")
 
 # This displays the opening screen, you don't need to edit this (but may if you like)
 def start_screen():
@@ -307,7 +327,7 @@ def start_screen():
     image = PhotoImage(file="./assets/images/logo.png")
 
     title_label = Label(image=image)
-    title_label.grid(column=0, row=0, columnspan=2)
+    title_label.grid(column=0, row=0, columnspan=10)
     # IP
     ip_label = Label(text="Server IP:")
     ip_label.grid(column=0, row=1, sticky="W", padx=8)
@@ -337,8 +357,19 @@ def start_screen():
     password_entry.grid(column=1, row=4)
     password_entry.insert(END, "")
 
+    # Confirm Password
+    confirm_password_label = Label(text="Confirm Password:")
+    confirm_password_label.grid(column=4, row=1, sticky="W", padx=8)
+
+    confirm_password_entry = Entry(app,show="*")
+    confirm_password_entry.grid(column=5, row=1)
+    confirm_password_entry.insert(END, "")
+
     join_button = Button(text="Join", command=lambda: join_server(ip_entry.get(), port_entry.get(), app,username_entry.get(),password_entry.get()))
-    join_button.grid(column=0, row=5, columnspan=2)
+    join_button.grid(column=1, row=6, columnspan=1)
+
+    register_button = Button(text="Register & Join", command=lambda: join_server(ip_entry.get(), port_entry.get(), app,username_entry.get(),password_entry.get(),confirm_password_entry.get()))
+    register_button.grid(column=4, row=2, columnspan=3)
 
     app.mainloop()
 
