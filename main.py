@@ -230,50 +230,39 @@ def join_server(ip: str, port: str, app: Tk,username:str,password:str, confirm_p
         "password": password
     }
 
+    # Check if player is trying to register
     if confirm_password is not None:
         player_credentials["confirm_password"] = confirm_password
 
-    # Get the required information from your server (screen width, height & player paddle, "left or "right)
-    client = socket(AF_INET, SOCK_STREAM)
+    context = ssl.create_default_context()
 
-    
-    try:
-        client.connect((ip, int(port)))
-        print("Connection successful")
-    except Exception as e:
-        print("Connection failed:", e)
+    # Options to allow self-signed certificates
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
 
-    client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    client_context.check_hostname = False
-    client_context.verify_mode = ssl.CERT_NONE  # Disable certificate verification
-    wrapped_client_socket = client_context.wrap_socket(client)
+    context.load_verify_locations(cafile="./rootCA.pem")
 
-    serialized_player_info = dumps(player_credentials)
-    wrapped_client_socket.sendall(serialized_player_info)
+    with context.wrap_socket(socket(AF_INET, SOCK_STREAM)) as ssock:
+        ssock.connect((ip, int(port)))
 
-    response = wrapped_client_socket.recv(BUFFER_SIZE)
-    if response == b"Authentication failed":
-        print("Authentication failed. Please check your username and password.")
-        title = "Authentication Failed"
-        message = (
-            "Incorrect username or password. Please try again.\n\n"
-            "If you are trying to sign up, make sure to have the same password and confirm password. "
-            "Also, click the register button to complete the registration."
-        )
+        ssock.sendall(dumps(player_credentials))
+        auth_response = ssock.recv(BUFFER_SIZE)
 
-        messagebox.showerror(title, message)
-        # Add code to handle the failed authentication, maybe prompt the user to re-enter credentials
-        wrapped_client_socket.close()  # Close the socket, as the authentication failed
-    else:
-        print("Authentication successful")
-        received_data = wrapped_client_socket.recv(BUFFER_SIZE)
-        initial_received_game_state: GameState = loads(received_data)
-        initial_received_game_state.player_name = username
+        if auth_response == b"Authentication failed":
+            messagebox.showerror("Authentication Failed", (
+                "Incorrect username or password. Please try again.\n\n"
+                "If you are trying to sign up, make sure to have the same password and confirm password. "
+                "Also, click the register button to complete the registration."
+            ))
+        else:
+            received_data = ssock.recv(BUFFER_SIZE)
+            initial_received_game_state: GameState = loads(received_data)
+            initial_received_game_state.player_name = username
 
-        # Close this window and start the game with the info passed to you from the server
-        app.withdraw()
-        play_game(wrapped_client_socket, initial_received_game_state)
-        app.quit()
+            # Close this window and start the game with the info passed to you from the server
+            app.withdraw()
+            play_game(ssock, initial_received_game_state)
+            app.quit()
 
 # This displays the opening screen, you don't need to edit this (but may if you like)
 def start_screen():
@@ -288,28 +277,27 @@ def start_screen():
     # Ip
     ip_label = Label(text="Server IP:")
     ip_label.grid(column=0, row=1, sticky="W", padx=8)
-
     ip_entry = Entry(app)
     ip_entry.grid(column=1, row=1)
     ip_entry.insert(END, DEFAULT_SOCKET_IP)
+
     # Port
     port_label = Label(text="Server Port:")
     port_label.grid(column=0, row=2, sticky="W", padx=8)
-
     port_entry = Entry(app)
     port_entry.grid(column=1, row=2)
     port_entry.insert(END, DEFAULT_SOCKET_PORT)
+
     # Username
     username_label = Label(text="Username:")
     username_label.grid(column=0, row=3, sticky="W", padx=8)
-
     username_entry = Entry(app)
     username_entry.grid(column=1, row=3)
     username_entry.insert(END, "")
+
     # Password
     password_label = Label(text="Password:")
     password_label.grid(column=0, row=4, sticky="W", padx=8)
-
     password_entry = Entry(app,show="*")
     password_entry.grid(column=1, row=4)
     password_entry.insert(END, "")
@@ -317,7 +305,6 @@ def start_screen():
     # Confirm Password
     confirm_password_label = Label(text="Confirm Password:")
     confirm_password_label.grid(column=4, row=1, sticky="W", padx=8)
-
     confirm_password_entry = Entry(app,show="*")
     confirm_password_entry.grid(column=5, row=1)
     confirm_password_entry.insert(END, "")
