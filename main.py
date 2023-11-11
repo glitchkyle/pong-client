@@ -16,7 +16,6 @@ from assets.code.helperCode import Paddle, Ball, update_score
 from config.constants import *
 from config.colors import Color
 from pong.game import GameState
-import requests
 import ssl
 
 def play_game(client: socket, game_state: GameState) -> None:
