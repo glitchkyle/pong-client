@@ -11,7 +11,6 @@ import sys
 from pickle import loads, dumps
 from socket import socket, AF_INET, SOCK_STREAM
 from tkinter import Tk, Entry, PhotoImage, Label, Button, END,messagebox
-from random import randint
 
 from assets.code.helperCode import Paddle, Ball, update_score
 from config.constants import *
@@ -20,9 +19,6 @@ from pong.game import GameState
 import requests
 import ssl
 
-# This is the main game loop.  For the most part, you will not need to modify this.  The sections
-# where you should add to the code are marked.  Feel free to change any part of this project
-# to suit your needs.
 def play_game(client: socket, game_state: GameState) -> None:
     screen_width, screen_height = game_state.screen_size
 
@@ -52,7 +48,8 @@ def play_game(client: socket, game_state: GameState) -> None:
 
     x_vel, y_vel = game_state.ball_velocity
     x, y, w, h = game_state.ball
-    ball = Ball(pygame.Rect(x, y, w, h), x_vel, y_vel)
+    ball_rect = pygame.Rect(x, y, w, h)
+    ball = Ball(ball_rect, x_vel, y_vel)
 
     if game_state.player_id == 0:
         # I am the player who initiated the game
@@ -64,8 +61,6 @@ def play_game(client: socket, game_state: GameState) -> None:
         player_paddle = right_paddle
 
     left_score = right_score = sync = 0
-    # Enable us to return to the initial state
-    start_state = game_state
     current_game_state = game_state
     while True:
         # Wiping the screen
@@ -81,19 +76,12 @@ def play_game(client: socket, game_state: GameState) -> None:
                     player_paddle.moving = "down"
                 elif event.key == pygame.K_UP:
                     player_paddle.moving = "up"
-                elif ENV == Environment.DEVELOPMENT.value and event.key == pygame.K_x:
-                    # [DEBUG] Simulate out of synchronization
-                    sync -= randint(1, 3)
-                    ball.randomize()
             elif event.type == pygame.KEYUP:
                 player_paddle.moving = ""
 
             if (left_score > MAX_SCORE - 1 or right_score > MAX_SCORE - 1) and event.type == pygame.MOUSEBUTTONDOWN:
                 if play_again_message.collidepoint(mouse[0],mouse[1]):
-                    playAgain()
-        
-        def playAgain() -> None:
-            current_game_state.again[current_game_state.player_id] = True
+                    current_game_state.again[current_game_state.player_id] ^= True
 
         def draw_centered_message(rect:pygame.Rect,font:pygame.font.Font,message:str,antialias:bool,center:tuple[float, float]) -> pygame.Rect:
             text_surface = font.render(message,antialias,Color.WHITE.value, (0,0,0))
@@ -101,13 +89,6 @@ def play_game(client: socket, game_state: GameState) -> None:
             text_rect.center = center
             rect = screen.blit(text_surface,text_rect)
             return rect
-        # =========================================================================================
-        # Your code here to send an update to the server on your paddle's information,
-        # where the ball is and the current score.
-        # Feel free to change when the score is updated to suit your needs/requirements
-        
-        
-        # =========================================================================================
 
         # Update the player paddle and opponent paddle's location on the screen
         for paddle in [player_paddle, opponent_paddle]:
@@ -121,20 +102,20 @@ def play_game(client: socket, game_state: GameState) -> None:
         mouse:tuple[int, int] = pygame.mouse.get_pos()
 
         # If the game is over, display the win message
-        if left_score > MAX_SCORE - 1 or right_score > MAX_SCORE - 1:
+        if left_score >= MAX_SCORE or right_score >= MAX_SCORE :
             win_text = "Player 1 Wins! " if left_score > MAX_SCORE - 1 else "Player 2 Wins! "
-            draw_centered_message(win_message,win_font,win_text,False,((screen_width/2), screen_height/2))
+            draw_centered_message(win_message, win_font,win_text, False, ((screen_width/2), screen_height/2))
+
             if current_game_state.again[current_game_state.player_id] == 0:
                 play_again_message = draw_centered_message(play_again_message,win_font,"Play Again",True,((screen_width/2), screen_height/2+90))
-            
-            if current_game_state.again[int(not current_game_state.player_id)] == 1:
-                play_again_message = draw_centered_message(play_again_message, win_font,f"Your opponent wants a rematch",True,((screen_width/2), screen_height/2+90))
+            else:
+                play_again_message = draw_centered_message(play_again_message,win_font,"Cancel Rematch",True,((screen_width/2), screen_height/2+90))
         else:
-
-            # ==== Ball Logic =====================================================================
             if current_game_state.start:
+                # Only draw and update the ball when the game started
                 ball.update_pos()
             else:
+                # Wait for opponent when the game has not started and no one won
                 win_text = "Waiting for opponent"
                 draw_centered_message(win_message,win_font,win_text,False,((screen_width/2), screen_height/2))
 
@@ -162,7 +143,6 @@ def play_game(client: socket, game_state: GameState) -> None:
                 ball.hit_wall()
             
             pygame.draw.rect(screen, Color.WHITE.value, ball)
-            # ==== End Ball Logic =================================================================
 
         # Drawing the dotted line in the center
         if current_game_state.start:
@@ -184,7 +164,7 @@ def play_game(client: socket, game_state: GameState) -> None:
         # catch up (use their info)
         sync += 1
 
-        # Send latest information to server
+        #   Send latest information to server
 
         # Send Paddles
         current_game_state.paddle_rect = [None, None]
@@ -199,39 +179,28 @@ def play_game(client: socket, game_state: GameState) -> None:
         current_game_state.ball = ball.to_tuple_rect()
         current_game_state.ball_velocity = (ball.x_vel, ball.y_vel)
 
-        # Send Score
         current_game_state.scores = (left_score, right_score)
-
-        # Send Sync
         current_game_state.sync = sync
 
         serialized_game_state = dumps(current_game_state)
         client.sendall(serialized_game_state)
 
-        # Receive latest information from server
+        #   Receive latest information from server
 
         # Fetch information
         received_data = client.recv(BUFFER_SIZE)
         received_game_state: GameState = loads(received_data)
 
-        # Update from information from server
+        #   Update based on information from server
         current_game_state = received_game_state
 
-        if current_game_state.sync > sync:
-            sync = current_game_state.sync
+        sync = current_game_state.sync
+        left_score, right_score = current_game_state.scores
 
-            # Update Score
-            left_score, right_score = current_game_state.scores
-
-            # Update Ball
-            x_vel, y_vel = current_game_state.ball_velocity
-            x, y, w, h = current_game_state.ball
-            ball.override_pos(pygame.Rect(x, y, w, h), x_vel, y_vel)
-
-        if current_game_state.again == [True,True]:
-            left_score = 0
-            right_score = 0
-            current_game_state = start_state
+        # Update Ball
+        x_vel, y_vel = current_game_state.ball_velocity
+        x, y, w, h = current_game_state.ball
+        ball.override_pos(pygame.Rect(x, y, w, h), x_vel, y_vel)
 
         # Update Paddles
         if current_game_state.player_id == 0:
@@ -255,20 +224,7 @@ def play_game(client: socket, game_state: GameState) -> None:
                 x, y, w, h = current_game_state.paddle_rect[1]
                 player_paddle.update(pygame.Rect(x, y, w, h))
 
-# This is where you will connect to the server to get the info required to call the game loop.  Mainly
-# the screen width, height and player paddle (either "left" or "right")
-# If you want to hard code the screen's dimensions into the code, that's fine, but you will need to know
-# which client is which
 def join_server(ip: str, port: str, app: Tk,username:str,password:str, confirm_password:str = None) -> None:
-    # Purpose:      This method is fired when the join button is clicked
-    # Arguments:
-    # ip            A string holding the IP address of the server
-    # port          A string holding the port the server is using
-    # app           The tk window object, needed to kill the window
-    
-    # Create a socket and connect to the server
-    # You don't have to use SOCK_STREAM, use what you think is best
-
 
     player_credentials = {
         "username": username,
@@ -314,10 +270,11 @@ def join_server(ip: str, port: str, app: Tk,username:str,password:str, confirm_p
         received_data = wrapped_client_socket.recv(BUFFER_SIZE)
         initial_received_game_state: GameState = loads(received_data)
         initial_received_game_state.player_name = username
+
         # Close this window and start the game with the info passed to you from the server
-        app.withdraw()                                      # Hides the window (we'll kill it later)
-        play_game(wrapped_client_socket, initial_received_game_state)       # User will be either left or right paddle
-        app.quit()                                          # Kills the window
+        app.withdraw()
+        play_game(wrapped_client_socket, initial_received_game_state)
+        app.quit()
 
 # This displays the opening screen, you don't need to edit this (but may if you like)
 def start_screen():
@@ -328,14 +285,15 @@ def start_screen():
 
     title_label = Label(image=image)
     title_label.grid(column=0, row=0, columnspan=10)
-    # IP
+
+    # Ip
     ip_label = Label(text="Server IP:")
     ip_label.grid(column=0, row=1, sticky="W", padx=8)
 
     ip_entry = Entry(app)
     ip_entry.grid(column=1, row=1)
     ip_entry.insert(END, DEFAULT_SOCKET_IP)
-    # PORT
+    # Port
     port_label = Label(text="Server Port:")
     port_label.grid(column=0, row=2, sticky="W", padx=8)
 

@@ -12,7 +12,6 @@ class GameState(object):
 
         # Read and Write
         self.sync = 0
-        self.message: str
         self.start: bool = False
         self.scores: tuple[int, int] = (0, 0)
         self.paddle_rect: list[TupleRect | None] = [None, None]
