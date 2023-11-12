@@ -1,53 +1,69 @@
-# =================================================================================================
-# Contributing Authors:	    <Anyone who touched the code>
-# Email Addresses:          <Your uky.edu email addresses>
-# Date:                     <The date the file was last edited>
-# Purpose:                  <How this file contributes to the project>
-# Misc:                     <Not Required.  Anything else you might want to include>
-# =================================================================================================
+"""
+Contributing Authors:	  Nishan Budathoki, James Chen, Kyle Lastimos
+Email Addresses:          nishan.budhathoki@uky.edu, James.Chen@uky.edu, klastimosa001@uky.edu
+Date:                     Nov 11,2023
+Purpose:                  This file contains the implementation of a Pong game using the Pygame library and Tkinter for user input. 
+                          It establishes connections with a server, handles user authentication, and manages the game loop.
+                          The game involves two players controlling paddles to bounce a ball back and forth, aiming to score points.
+"""
 
 import pygame
+from pygame import Rect, init
+from pygame.draw import rect
+from pygame import display
+from pygame.font import Font
+from pygame.mixer import pre_init, Sound
+from pygame.time import Clock
+
 import sys
 from pickle import loads, dumps
 from socket import socket, AF_INET, SOCK_STREAM
 from tkinter import Tk, Entry, PhotoImage, Label, Button, END,messagebox
 
 from assets.code.helperCode import Paddle, Ball, update_score
+
 from config.constants import *
 from config.colors import Color
+
 from pong.game import GameState
 import ssl
 
 def play_game(client: socket, game_state: GameState) -> None:
+    """
+    Author:              James Chen, Kyle Lastimosa
+    Purpose:             Play the Pong game with the provided client and game state.
+    Pre:                 Assumes a valid client connection and initialized game state.
+    Post:                Manages the game loop, updates positions, handles collisions, and sends/receives game state data.
+    """
     screen_width, screen_height = game_state.screen_size
 
     # Pygame inits
-    pygame.mixer.pre_init(44100, -16, 2, 2048)
-    pygame.init()
+    pre_init(44100, -16, 2, 2048)
+    init()
 
     # Constants
-    clock = pygame.time.Clock()
-    score_font = pygame.font.Font("./assets/fonts/pong-score.ttf", 32)
-    win_font = pygame.font.Font("./assets/fonts/visitor.ttf", 32)
-    point_sound = pygame.mixer.Sound("./assets/sounds/point.wav")
-    bounce_sound = pygame.mixer.Sound("./assets/sounds/bounce.wav")
+    clock = Clock()
+    score_font = Font("./assets/fonts/pong-score.ttf", 32)
+    win_font = Font("./assets/fonts/visitor.ttf", 32)
+    point_sound = Sound("./assets/sounds/point.wav")
+    bounce_sound = Sound("./assets/sounds/bounce.wav")
 
     # Display objects
-    screen = pygame.display.set_mode(game_state.screen_size)
-    win_message = pygame.Rect(0,0,0,0)
-    top_wall = pygame.Rect(-10,0,screen_width+20, 10)
-    bottom_wall = pygame.Rect(-10, screen_height-10, screen_width+20, 10)
-    center_line = [pygame.Rect((screen_width/2)-5,i,5,5) for i in range(0, screen_height, 10)]
-    play_again_message = pygame.Rect(0,0,50,50)
+    screen = display.set_mode(game_state.screen_size)
+    win_message = Rect(0,0,0,0)
+    top_wall = Rect(-10,0,screen_width+20, 10)
+    bottom_wall = Rect(-10, screen_height-10, screen_width+20, 10)
+    center_line = [Rect((screen_width/2)-5,i,5,5) for i in range(0, screen_height, 10)]
+    play_again_message = Rect(0,0,50,50)
 
     # Paddle properties and init
     paddle_start_pos_y = (screen_height/2)-(PADDLE_HEIGHT/2)
-    left_paddle = Paddle(pygame.Rect(10,paddle_start_pos_y, PADDLE_WIDTH, PADDLE_HEIGHT))
-    right_paddle = Paddle(pygame.Rect(screen_width-20, paddle_start_pos_y, PADDLE_WIDTH, PADDLE_HEIGHT))
+    left_paddle = Paddle(Rect(10,paddle_start_pos_y, PADDLE_WIDTH, PADDLE_HEIGHT))
+    right_paddle = Paddle(Rect(screen_width-20, paddle_start_pos_y, PADDLE_WIDTH, PADDLE_HEIGHT))
 
     x_vel, y_vel = game_state.ball_velocity
     x, y, w, h = game_state.ball
-    ball_rect = pygame.Rect(x, y, w, h)
+    ball_rect = Rect(x, y, w, h)
     ball = Ball(ball_rect, x_vel, y_vel)
 
     if game_state.player_id == 0:
@@ -81,8 +97,14 @@ def play_game(client: socket, game_state: GameState) -> None:
             if (left_score > MAX_SCORE - 1 or right_score > MAX_SCORE - 1) and event.type == pygame.MOUSEBUTTONDOWN:
                 if play_again_message.collidepoint(mouse[0],mouse[1]):
                     current_game_state.again[current_game_state.player_id] ^= True
-
-        def draw_centered_message(rect:pygame.Rect,font:pygame.font.Font,message:str,antialias:bool,center:tuple[float, float]) -> pygame.Rect:
+        
+        def draw_centered_message(rect:Rect,font:Font,message:str,antialias:bool,center:tuple[float, float]) -> Rect:
+            """
+            Author:              James Chen
+            Purpose:             Draw a centered message on the screen using the provided rectangle, font, message, antialiasing, and center coordinates.
+            Pre:                 Assumes a valid Rect, Font, and center tuple are provided.
+            Post:                Renders the message on the screen at the specified center coordinates and returns the updated rectangle.   
+            """
             text_surface = font.render(message,antialias,Color.WHITE.value, (0,0,0))
             text_rect = text_surface.get_rect()
             text_rect.center = center
@@ -141,21 +163,21 @@ def play_game(client: socket, game_state: GameState) -> None:
                 bounce_sound.play()
                 ball.hit_wall()
             
-            pygame.draw.rect(screen, Color.WHITE.value, ball)
+            rect(screen, Color.WHITE.value, ball)
 
         # Drawing the dotted line in the center
         if current_game_state.start:
             for i in center_line:
-                pygame.draw.rect(screen, Color.WHITE.value, i)
+                rect(screen, Color.WHITE.value, i)
         
         # Drawing the player's new location
         for paddle in [player_paddle, opponent_paddle]:
-            pygame.draw.rect(screen, Color.WHITE.value, paddle)
+            rect(screen, Color.WHITE.value, paddle)
 
-        pygame.draw.rect(screen, Color.WHITE.value, top_wall)
-        pygame.draw.rect(screen, Color.WHITE.value, bottom_wall)
+        rect(screen, Color.WHITE.value, top_wall)
+        rect(screen, Color.WHITE.value, bottom_wall)
         scoreRect = update_score(left_score, right_score, screen, Color.WHITE.value, score_font)
-        pygame.display.update([top_wall, bottom_wall, ball, left_paddle, right_paddle, scoreRect, win_message])
+        display.update([top_wall, bottom_wall, ball, left_paddle, right_paddle, scoreRect, win_message])
         clock.tick(GAME_CLOCK_SPEED)
         
         # This number should be synchronized between you and your opponent.  If your number is larger
@@ -186,7 +208,6 @@ def play_game(client: socket, game_state: GameState) -> None:
 
         #   Receive latest information from server
 
-        # Fetch information
         received_data = client.recv(BUFFER_SIZE)
         received_game_state: GameState = loads(received_data)
 
@@ -199,7 +220,7 @@ def play_game(client: socket, game_state: GameState) -> None:
         # Update Ball
         x_vel, y_vel = current_game_state.ball_velocity
         x, y, w, h = current_game_state.ball
-        ball.override_pos(pygame.Rect(x, y, w, h), x_vel, y_vel)
+        ball.override_pos(Rect(x, y, w, h), x_vel, y_vel)
 
         # Update Paddles
         if current_game_state.player_id == 0:
@@ -207,24 +228,30 @@ def play_game(client: socket, game_state: GameState) -> None:
             if current_game_state.paddle_rect[0] is not None:
                 # Update my paddle
                 x, y, w, h = current_game_state.paddle_rect[0]
-                player_paddle.update(pygame.Rect(x, y, w, h))
+                player_paddle.update(Rect(x, y, w, h))
             if current_game_state.paddle_rect[1] is not None:
                 # Update opponent paddle
                 x, y, w, h = current_game_state.paddle_rect[1]
-                opponent_paddle.update(pygame.Rect(x, y, w, h))
+                opponent_paddle.update(Rect(x, y, w, h))
         else:
             # If I am the right player
             if current_game_state.paddle_rect[0] is not None:
                 # Update opponent paddle
                 x, y, w, h = current_game_state.paddle_rect[0]
-                opponent_paddle.update(pygame.Rect(x, y, w, h))
+                opponent_paddle.update(Rect(x, y, w, h))
             if current_game_state.paddle_rect[1] is not None:
                 # Update my paddle
                 x, y, w, h = current_game_state.paddle_rect[1]
-                player_paddle.update(pygame.Rect(x, y, w, h))
+                player_paddle.update(Rect(x, y, w, h))
+
 
 def join_server(ip: str, port: str, app: Tk,username:str,password:str, confirm_password:str = None) -> None:
-
+    """
+    Author:              James Chen, Kyle Lastimosa
+    Purpose:             Join the Pong game server with the provided IP, port, username, and password.
+    Pre:                 Assumes Tkinter app window is provided, and valid username and password credentials.
+    Post:                Connects to the server, sends authentication details, receives game state, and starts the game.
+    """
     player_credentials = {
         "username": username,
         "password": password
@@ -265,7 +292,13 @@ def join_server(ip: str, port: str, app: Tk,username:str,password:str, confirm_p
             app.quit()
 
 # This displays the opening screen, you don't need to edit this (but may if you like)
-def start_screen():
+def start_screen() -> None:
+    """
+    Author:       Kyle Lastimosa
+    Purpose:      Display the opening screen for the Pong game.
+    Pre:          None
+    Post:         Initializes Tkinter app window with server information input fields.   
+    """ 
     app = Tk()
     app.title("Server Info")
 
@@ -317,7 +350,13 @@ def start_screen():
 
     app.mainloop()
 
-def main():
+def main() -> None:
+    """
+    Author:       Kyle Lastimosa
+    Purpose:      Initiate the Pong game.
+    Pre:          None
+    Post:         Calls the start_screen function to display the opening screen.  
+    """
     start_screen()
 
 if __name__ == "__main__":
