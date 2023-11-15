@@ -225,10 +225,6 @@ def play_game(client: socket, game_state: GameState) -> None:
         # Update Paddles
         if current_game_state.player_id == 0:
             # If I am the left player
-            if current_game_state.paddle_rect[0] is not None:
-                # Update my paddle
-                x, y, w, h = current_game_state.paddle_rect[0]
-                player_paddle.update(Rect(x, y, w, h))
             if current_game_state.paddle_rect[1] is not None:
                 # Update opponent paddle
                 x, y, w, h = current_game_state.paddle_rect[1]
@@ -239,11 +235,6 @@ def play_game(client: socket, game_state: GameState) -> None:
                 # Update opponent paddle
                 x, y, w, h = current_game_state.paddle_rect[0]
                 opponent_paddle.update(Rect(x, y, w, h))
-            if current_game_state.paddle_rect[1] is not None:
-                # Update my paddle
-                x, y, w, h = current_game_state.paddle_rect[1]
-                player_paddle.update(Rect(x, y, w, h))
-
 
 def join_server(ip: str, port: str, app: Tk,username:str,password:str, confirm_password:str = None) -> None:
     """
