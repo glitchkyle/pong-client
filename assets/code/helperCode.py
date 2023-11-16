@@ -1,8 +1,9 @@
 """
-Contributing Authors:	  Nishan Budathoki, James Chen, Kyle Lastimos
+Contributing Authors:	  TA, Nishan Budathoki, James Chen, Kyle Lastimos
 Email Addresses:          nishan.budhathoki@uky.edu, James.Chen@uky.edu, klastimosa001@uky.edu
 Date:                     Nov 11,2023
 Purpose:                  Utility Functions for Pong Game Mechanics
+ChatGPT generated some of these comments for the function
 """
 
 from random import randint
@@ -15,7 +16,7 @@ TupleRect = tuple[int, int, int ,int]
 # This draws the score to the screen
 def update_score(left_score:int, right_score:int, screen:Surface, color, score_font:Font) -> Rect:
     """
-    Author:       Kyle Lastimosa
+    Author:       TA, Kyle Lastimosa
     Purpose:      Updates and displays the game score on the screen.
     Pre:          Assumes the game state, screen, color, and font are properly configured.
     Post:         Returns the Rect object representing the updated score display position.
@@ -28,14 +29,14 @@ def update_score(left_score:int, right_score:int, screen:Surface, color, score_f
 
 class Paddle:
     """
-    Author:       Kyle Lastimosa
+    Author:       TA, Kyle Lastimosa
     Purpose:      Represents a paddle in the game, handling movement and position updates.
     Pre:          Assumes the object's initial state is set appropriately for game initiation.
     Post:         The Paddle instance is properly initialized.
     """
     def __init__(self, rect: Rect) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Initializes the Paddle instance.
         Pre:          Assumes the object's initial state is set appropriately for game initiation.
         Post:         The Paddle instance is properly initialized.
@@ -49,7 +50,7 @@ class Paddle:
     
     def __str__(self) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Returns a string representation of the Paddle's current position.
         Pre:          Assumes the object's initial state is set.
         Post:         Allows for observing the Paddle's position as a string.
@@ -58,7 +59,7 @@ class Paddle:
     
     def to_tuple_rect(self) -> TupleRect:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Converts the object's Rect into a tuple format.
         Pre:          Assumes the object's initial state is set.
         Post:         Returns a tuple representing the Rect object's (x, y, width, height).
@@ -67,7 +68,7 @@ class Paddle:
     
     def update(self, rect: Rect) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Updates the Paddle's position.
         Pre:          Assumes the object's initial state is set.
         Post:         Updates the Paddle's position based on the provided Rect parameter.
@@ -79,14 +80,14 @@ class Paddle:
 
 class Ball:
     """
-    Author:       Kyle Lastimosa
+    Author:       TA, Kyle Lastimosa
     Purpose:      Represents a ball in the game, handling movement, collisions, and resets.
     Pre:          Assumes the object's initial state is set appropriately for game initiation.
     Post:         Methods provide functionality for updating, resetting, and randomizing the ball's state.
     """
     def __init__(self, rect:Rect, start_x_vel:int, start_y_vel:int) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Initializes the Ball instance.
         Pre:          (Optional) Any specific preconditions for object instantiation.
         Post:         The Ball instance is properly initialized.
@@ -104,7 +105,7 @@ class Ball:
 
     def to_tuple_rect(self) -> TupleRect:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Converts the object's Rect into a tuple format.
         Pre:          Assumes the object's initial state is set.
         Post:         Returns a tuple representing the Rect object's (x, y, width, height).
@@ -113,7 +114,7 @@ class Ball:
     
     def update_pos(self) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Update the current postion of the object with specified horizontal and vertical velocity
         Pre:          Assume the object's initial state is set
         Post:         Update the object's position and velocity based on specified horizontal and vertical velocity
@@ -123,7 +124,7 @@ class Ball:
 
     def override_pos(self, rect:Rect, x_vel:int, y_vel:int) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Overrides the current position and velocity of the object with specified values.
         Pre:          Assumes the object's initial state is set.
         Post:         Updates the object's position and velocity based on the provided parameters.
@@ -139,7 +140,7 @@ class Ball:
     
     def hit_paddle(self, paddle_center:int) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Handles the collision with a paddle, reversing horizontal velocity and adjusting vertical velocity.
         Pre:          Assumes the object's initial state is set.
         Post:         Reverses the x_vel and adjusts y_vel based on the distance from the paddle's center.
@@ -152,7 +153,7 @@ class Ball:
     
     def hit_wall(self) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Reverses the vertical velocity when the object hits a wall to simulate hitting a wall
         Pre:          Assumes the object's initial state is set.
         Post:         Negates the y_vel, causing a change in vertical direction.
@@ -161,7 +162,7 @@ class Ball:
     
     def reset(self, now_going:str) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Resets the object's position and velocity based on the specified direction.
         Pre:          Assumes the object's initial state is set.
         Post:         Updates the object's position to its starting coordinates, sets the velocity
@@ -179,7 +180,7 @@ class Ball:
 
     def randomize(self) -> None:
         """
-        Author:       Kyle Lastimosa
+        Author:       TA, Kyle Lastimosa
         Purpose:      Randomizes the velocity of the object.
         Pre:          Assumes the object's initial game state is set.
         Post:         Updates the object's x_vel and y_vel with random values in the range [-5, 5].
