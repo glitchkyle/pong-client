@@ -5,6 +5,7 @@ Date:                     Nov 11,2023
 Purpose:                  This file contains the implementation of a Pong game using the Pygame library and Tkinter for user input. 
                           It establishes connections with a server, handles user authentication, and manages the game loop.
                           The game involves two players controlling paddles to bounce a ball back and forth, aiming to score points.
+ChatGPT generated some of these comments for the function
 """
 
 import pygame
