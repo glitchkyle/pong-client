@@ -1,5 +1,8 @@
 # pong-client
 
+## Requirements
+1. Python>=3.10
+
 ## Setup
 
 1. Clone repository `https://github.com/glitchkyle/pong-client.git`
